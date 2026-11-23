@@ -279,10 +279,13 @@
 
       <div id="auth-msg" class="msg hidden"></div>
 
-      <form id="form-email">
+     <form id="form-email">
         <label for="input-email">Ваш email</label>
         <input type="email" id="input-email" required placeholder="name@example.com" autocomplete="email">
         <button type="submit" id="btn-send-otp">Получить код на почту</button>
+        <div class="link-row" style="justify-content: center;">
+          <button type="button" id="btn-have-code" class="link-btn">Уже есть код из письма? Ввести код</button>
+        </div>
       </form>
 
       <form id="form-otp" class="hidden">
@@ -327,7 +330,7 @@
   <!-- Kinescope Player IFrame API -->
   <script src="https://player.kinescope.io/latest/iframe.player.js"></script>
 
-  <script>
+    <script>
     // ВСТАВЬТЕ СЮДА URL ВАШЕГО ВЕБ-ПРИЛОЖЕНИЯ GOOGLE APPS SCRIPT
     const API_URL = 'https://script.google.com/macros/s/AKfycbxJXsmcwL6oyoXT66YXburGKXhXO3IF6sK_3RlaWjkVaqZugdGpmAvLf_6500nwOui9/exec';
     const TOKEN_KEY = 'mk_cabinet_token';
@@ -357,6 +360,7 @@
       inputEmail: document.getElementById('input-email'),
       inputOtp: document.getElementById('input-otp'),
       btnSend: document.getElementById('btn-send-otp'),
+      btnHaveCode: document.getElementById('btn-have-code'),
       btnVerify: document.getElementById('btn-verify-otp'),
       btnChange: document.getElementById('btn-change-email'),
       btnResend: document.getElementById('btn-resend-otp'),
@@ -364,14 +368,56 @@
       btnBack: document.getElementById('btn-back')
     };
 
-    async function apiCall(payload) {
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(payload)
-      });
-      if (!response.ok) throw new Error('Network error');
-      return response.json();
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function apiCall(payload, options = {}) {
+      const retries = options.retries || 0;
+      const timeoutMs = options.timeoutMs || 25000;
+      let lastError = null;
+
+      for (let attempt = 0; attempt <= retries; attempt++) {
+        const controller = new AbortController();
+        const timerId = setTimeout(() => controller.abort(), timeoutMs);
+
+        try {
+          const response = await fetch(API_URL, {
+            method: 'POST',
+            mode: 'cors',
+            credentials: 'omit',
+            redirect: 'follow',
+            cache: 'no-store',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload),
+            signal: controller.signal
+          });
+
+          clearTimeout(timerId);
+
+          if (!response.ok) {
+            throw new Error('HTTP ' + response.status);
+          }
+
+          const rawText = await response.text();
+          try {
+            return JSON.parse(rawText);
+          } catch (parseErr) {
+            console.error('Apps Script вернул не JSON:', rawText.slice(0, 300));
+            throw new Error('Invalid JSON response');
+          }
+        } catch (err) {
+          clearTimeout(timerId);
+          lastError = err;
+          console.error('Ошибка запроса [' + payload.action + '], попытка ' + (attempt + 1) + ':', err);
+
+          if (attempt < retries) {
+            await sleep(1200);
+          }
+        }
+      }
+
+      throw lastError;
     }
 
     function showMessage(text, type) {
@@ -436,7 +482,7 @@
           ui: {
             watermark: {
               text: email,
-              mode: 'random', // Поменяйте на 'stripes' для диагональных полос
+              mode: 'random',
               scale: 0.25,
               displayTimeout: {
                 visible: 5000,
@@ -595,7 +641,6 @@
         el.lessonsBox.appendChild(card);
       });
 
-      // Монтируем плееры строго после того, как контейнеры добавлены в DOM
       playersToInit.forEach(item => {
         mountKinescopePlayer(item.mountId, item.kinescopeId, currentEmail, generation);
       });
@@ -621,38 +666,74 @@
       }, 1000);
     }
 
-    el.btnBack.addEventListener('click', () => {
-      el.catalogNotice.classList.add('hidden');
-      renderCatalog();
-    });
+    function openOtpStep(email, noticeText, noticeType, withCountdown) {
+      currentEmail = email;
+      el.formEmail.classList.add('hidden');
+      el.formOtp.classList.remove('hidden');
+      el.inputOtp.value = '';
+      el.inputOtp.focus();
+      showMessage(noticeText, noticeType);
 
-    el.formEmail.addEventListener('submit', async (e) => {
-      e.preventDefault();
+      if (withCountdown) {
+        startResendCountdown();
+      } else {
+        clearInterval(resendTimer);
+        el.btnResend.disabled = false;
+        el.btnResend.textContent = 'Отправить код повторно';
+      }
+    }
+
+    async function sendOtpRequest() {
       currentEmail = el.inputEmail.value.trim().toLowerCase();
       if (!currentEmail) return;
 
       showMessage('', '');
       el.btnSend.disabled = true;
+      el.btnResend.disabled = true;
       el.btnSend.textContent = 'Отправляем код...';
 
       try {
-        const data = await apiCall({ action: 'request_otp', email: currentEmail });
+        // retries: 0 — чтобы не отправлять повторное письмо при обрыве ответа
+        const data = await apiCall({ action: 'request_otp', email: currentEmail }, { retries: 0 });
         if (data.ok) {
-          el.formEmail.classList.add('hidden');
-          el.formOtp.classList.remove('hidden');
-          el.inputOtp.value = '';
-          el.inputOtp.focus();
-          showMessage('Код отправлен на ' + currentEmail + '. Проверьте также папку «Спам».', 'info');
-          startResendCountdown();
+          openOtpStep(
+            currentEmail,
+            'Код отправлен на ' + currentEmail + '. Проверьте также папку «Спам».',
+            'info',
+            true
+          );
         } else {
           showMessage(data.error || 'Не удалось отправить код.', 'error');
         }
       } catch (err) {
-        showMessage('Ошибка связи с сервером. Попробуйте ещё раз.', 'error');
+        showMessage(
+          'Ответ от сервера не дошёл, но письмо с кодом могло уже отправиться. Проверьте почту — если код пришёл, нажмите «Уже есть код из письма? Ввести код» ниже.',
+          'warn'
+        );
       } finally {
         el.btnSend.disabled = false;
         el.btnSend.textContent = 'Получить код на почту';
       }
+    }
+
+    el.btnBack.addEventListener('click', () => {
+      el.catalogNotice.classList.add('hidden');
+      renderCatalog();
+    });
+
+    el.formEmail.addEventListener('submit', (e) => {
+      e.preventDefault();
+      sendOtpRequest();
+    });
+
+    el.btnHaveCode.addEventListener('click', () => {
+      const email = el.inputEmail.value.trim().toLowerCase();
+      if (!email) {
+        showMessage('Сначала введите ваш email в поле выше.', 'error');
+        el.inputEmail.focus();
+        return;
+      }
+      openOtpStep(email, 'Введите 6-значный код из письма для ' + email + '.', 'info', false);
     });
 
     el.formOtp.addEventListener('submit', async (e) => {
@@ -665,7 +746,7 @@
       el.btnVerify.textContent = 'Проверяем...';
 
       try {
-        const data = await apiCall({ action: 'verify_otp', email: currentEmail, code: code });
+        const data = await apiCall({ action: 'verify_otp', email: currentEmail, code: code }, { retries: 1 });
         if (data.ok && data.token) {
           localStorage.setItem(TOKEN_KEY, data.token);
           renderCabinet(data.email, data.courses);
@@ -673,7 +754,7 @@
           showMessage(data.error || 'Неверный код.', 'error');
         }
       } catch (err) {
-        showMessage('Ошибка связи с сервером. Попробуйте ещё раз.', 'error');
+        showMessage('Связь с сервером прервалась. Нажмите «Войти» ещё раз — код сохранится ещё на 30 секунд.', 'error');
       } finally {
         el.btnVerify.disabled = false;
         el.btnVerify.textContent = 'Войти';
@@ -688,7 +769,7 @@
     });
 
     el.btnResend.addEventListener('click', () => {
-      el.formEmail.dispatchEvent(new Event('submit'));
+      sendOtpRequest();
     });
 
     el.btnLogout.addEventListener('click', async () => {
@@ -709,7 +790,6 @@
       }
     });
 
-    // Базовая защита от копирования и печати
     document.addEventListener('contextmenu', (e) => {
       if (e.target.tagName !== 'INPUT') e.preventDefault();
     });
@@ -720,7 +800,6 @@
       }
     });
 
-    // Проверка сохранённой сессии при загрузке страницы
     (async function init() {
       const savedToken = localStorage.getItem(TOKEN_KEY);
       if (!savedToken) {
@@ -729,7 +808,7 @@
       }
 
       try {
-        const data = await apiCall({ action: 'check_session', token: savedToken });
+        const data = await apiCall({ action: 'check_session', token: savedToken }, { retries: 1 });
         if (data.ok) {
           renderCabinet(data.email, data.courses);
         } else {
