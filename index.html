@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>Личный кабинет — Мастер-классы</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --danger: #b91c1c;
+      --success: #15803d;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    input, textarea {
+      -webkit-user-select: text;
+      user-select: text;
+    }
+
+    @media print {
+      body { display: none !important; }
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px 16px 64px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .hidden { display: none !important; }
+
+    .loader-box {
+      text-align: center;
+      padding: 80px 16px;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    /* Авторизация */
+    .auth-card {
+      max-width: 420px;
+      margin: 56px auto 0;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px 24px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    }
+
+    .auth-card h1 { margin: 0 0 8px; font-size: 22px; }
+    .subtitle { margin: 0 0 20px; font-size: 14px; color: var(--muted); }
+
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+
+    input[type="email"],
+    input[type="text"] {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 16px;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      outline: none;
+    }
+
+    input:focus { border-color: var(--accent); }
+
+    input.otp-input {
+      letter-spacing: 6px;
+      text-align: center;
+      font-size: 22px;
+      font-weight: 600;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      background: var(--accent);
+      border: 0;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+    }
+
+    button:hover:not(:disabled) { background: var(--accent-hover); }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .link-row {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 14px;
+    }
+
+    .link-btn {
+      background: none;
+      border: 0;
+      padding: 0;
+      width: auto;
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .link-btn:hover:not(:disabled) { background: none; text-decoration: underline; }
+    .link-btn:disabled { color: var(--muted); }
+
+    .msg {
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+
+    .msg.error { background: #fef2f2; color: var(--danger); border: 1px solid #fecaca; }
+    .msg.info  { background: #f0fdf4; color: var(--success); border: 1px solid #bbf7d0; }
+    .msg.warn  { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+
+    /* Шапка кабинета */
+    .topbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 24px;
+    }
+
+    .user-badge { font-size: 14px; color: var(--muted); }
+    .user-badge strong { color: var(--text); }
+
+    .btn-secondary {
+      width: auto;
+      padding: 8px 14px;
+      font-size: 14px;
+      background: #f3f4f6;
+      color: var(--text);
+    }
+
+    .btn-secondary:hover:not(:disabled) { background: #e5e7eb; }
+
+    /* Каталог доступных МК */
+    .section-title {
+      margin: 0 0 16px;
+      font-size: 22px;
+    }
+
+    .courses-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+      gap: 16px;
+    }
+
+    .course-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 16px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+    }
+
+    .course-card h3 { margin: 0 0 6px; font-size: 18px; }
+    .course-card p { margin: 0; font-size: 14px; color: var(--muted); }
+    .course-meta { font-size: 13px; color: var(--muted); margin-top: 10px; }
+
+    /* Страница открытого МК */
+    .course-header { margin-bottom: 20px; }
+
+    .back-btn {
+      margin-bottom: 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .course-header h1 { margin: 0 0 6px; font-size: 24px; }
+    .course-header p { margin: 0; color: var(--muted); font-size: 15px; }
+
+    .lesson-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px;
+      margin-bottom: 22px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+    }
+
+    .lesson-card h2 { margin: 0 0 10px; font-size: 19px; }
+    .lesson-desc { margin-bottom: 16px; font-size: 15px; color: #374151; }
+
+    .video-wrap {
+      position: relative;
+      padding-top: 56.25%;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #000;
+    }
+
+    .video-wrap > div,
+    .video-wrap iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    /* Фоновый водяной знак для текстовой части страницы */
+    .watermark-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9999;
+      overflow: hidden;
+      opacity: 0.07;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(5, 1fr);
+      align-items: center;
+      justify-items: center;
+    }
+
+    .watermark-item {
+      transform: rotate(-24deg);
+      font-size: 14px;
+      font-weight: 600;
+      color: #000;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="watermark" class="watermark-layer hidden"></div>
+
+  <div class="container">
+    <div id="view-loader" class="loader-box">Проверяем доступ...</div>
+
+    <!-- Авторизация -->
+    <div id="view-auth" class="auth-card hidden">
+      <h1>Вход в личный кабинет</h1>
+      <p class="subtitle">Введите email, указанный при покупке — отправим одноразовый код.</p>
+
+      <div id="auth-msg" class="msg hidden"></div>
+
+      <form id="form-email">
+        <label for="input-email">Ваш email</label>
+        <input type="email" id="input-email" required placeholder="name@example.com" autocomplete="email">
+        <button type="submit" id="btn-send-otp">Получить код на почту</button>
+      </form>
+
+      <form id="form-otp" class="hidden">
+        <label for="input-otp">Код из письма (6 цифр)</label>
+        <input type="text" id="input-otp" class="otp-input" required maxlength="6"
+               inputmode="numeric" pattern="[0-9]{6}" autocomplete="one-time-code" placeholder="000000">
+        <button type="submit" id="btn-verify-otp">Войти</button>
+
+        <div class="link-row">
+          <button type="button" id="btn-change-email" class="link-btn">Изменить email</button>
+          <button type="button" id="btn-resend-otp" class="link-btn" disabled>Повторить (60с)</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Авторизованный кабинет -->
+    <div id="view-cabinet" class="hidden">
+      <div class="topbar">
+        <div class="user-badge">Вы вошли как: <strong id="user-email-label"></strong></div>
+        <button type="button" id="btn-logout" class="btn-secondary">Выйти</button>
+      </div>
+
+      <!-- Список купленных МК -->
+      <div id="panel-catalog" class="hidden">
+        <div id="catalog-notice" class="msg warn hidden"></div>
+        <h1 class="section-title">Доступные мастер-классы</h1>
+        <div id="courses-grid" class="courses-grid"></div>
+      </div>
+
+      <!-- Уроки выбранного МК -->
+      <div id="panel-course" class="hidden">
+        <div class="course-header">
+          <button type="button" id="btn-back" class="btn-secondary back-btn hidden">← Все мои мастер-классы</button>
+          <h1 id="course-title"></h1>
+          <p id="course-subtitle"></p>
+        </div>
+        <div id="lessons-container"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Kinescope Player IFrame API -->
+  <script src="https://player.kinescope.io/latest/iframe.player.js"></script>
+
+  <script>
+    // ВСТАВЬТЕ СЮДА URL ВАШЕГО ВЕБ-ПРИЛОЖЕНИЯ GOOGLE APPS SCRIPT
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxJXsmcwL6oyoXT66YXburGKXhXO3IF6sK_3RlaWjkVaqZugdGpmAvLf_6500nwOui9/exec';
+    const TOKEN_KEY = 'mk_cabinet_token';
+
+    let currentEmail = '';
+    let userCourses = [];
+    let activePlayers = [];
+    let renderGeneration = 0;
+    let resendTimer = null;
+
+    const el = {
+      loader: document.getElementById('view-loader'),
+      auth: document.getElementById('view-auth'),
+      cabinet: document.getElementById('view-cabinet'),
+      panelCatalog: document.getElementById('panel-catalog'),
+      panelCourse: document.getElementById('panel-course'),
+      catalogNotice: document.getElementById('catalog-notice'),
+      coursesGrid: document.getElementById('courses-grid'),
+      courseTitle: document.getElementById('course-title'),
+      courseSubtitle: document.getElementById('course-subtitle'),
+      lessonsBox: document.getElementById('lessons-container'),
+      userEmail: document.getElementById('user-email-label'),
+      watermark: document.getElementById('watermark'),
+      msg: document.getElementById('auth-msg'),
+      formEmail: document.getElementById('form-email'),
+      formOtp: document.getElementById('form-otp'),
+      inputEmail: document.getElementById('input-email'),
+      inputOtp: document.getElementById('input-otp'),
+      btnSend: document.getElementById('btn-send-otp'),
+      btnVerify: document.getElementById('btn-verify-otp'),
+      btnChange: document.getElementById('btn-change-email'),
+      btnResend: document.getElementById('btn-resend-otp'),
+      btnLogout: document.getElementById('btn-logout'),
+      btnBack: document.getElementById('btn-back')
+    };
+
+    async function apiCall(payload) {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) throw new Error('Network error');
+      return response.json();
+    }
+
+    function showMessage(text, type) {
+      if (!text) {
+        el.msg.classList.add('hidden');
+        return;
+      }
+      el.msg.textContent = text;
+      el.msg.className = 'msg ' + type;
+    }
+
+    function switchMainView(view) {
+      el.loader.classList.toggle('hidden', view !== 'loader');
+      el.auth.classList.toggle('hidden', view !== 'auth');
+      el.cabinet.classList.toggle('hidden', view !== 'cabinet');
+      el.watermark.classList.toggle('hidden', view !== 'cabinet');
+    }
+
+    function renderWatermark(email) {
+      el.watermark.innerHTML = '';
+      for (let i = 0; i < 15; i++) {
+        const span = document.createElement('span');
+        span.className = 'watermark-item';
+        span.textContent = email;
+        el.watermark.appendChild(span);
+      }
+    }
+
+    function destroyActivePlayers() {
+      renderGeneration++;
+      activePlayers.forEach(player => {
+        try { player.destroy(); } catch (_) {}
+      });
+      activePlayers = [];
+    }
+
+    function renderFallbackIframe(mountId, embedUrl) {
+      const host = document.getElementById(mountId);
+      if (!host) return;
+      const iframe = document.createElement('iframe');
+      iframe.src = embedUrl;
+      iframe.allow = 'autoplay; fullscreen; picture-in-picture; encrypted-media;';
+      iframe.referrerPolicy = 'strict-origin-when-cross-origin';
+      iframe.allowFullscreen = true;
+      host.replaceWith(iframe);
+    }
+
+    function mountKinescopePlayer(mountId, kinescopeId, email, generation) {
+      const embedUrl = 'https://kinescope.io/embed/' + encodeURIComponent(kinescopeId);
+
+      if (window.Kinescope && window.Kinescope.IframePlayer) {
+        window.Kinescope.IframePlayer.create(mountId, {
+          url: embedUrl,
+          size: { width: '100%', height: '100%' },
+          behavior: {
+            autoPause: true,
+            playsInline: true
+          },
+          settings: {
+            externalId: email
+          },
+          ui: {
+            watermark: {
+              text: email,
+              mode: 'random', // Поменяйте на 'stripes' для диагональных полос
+              scale: 0.25,
+              displayTimeout: {
+                visible: 5000,
+                hidden: 3000
+              }
+            }
+          }
+        }).then(player => {
+          if (generation !== renderGeneration) {
+            try { player.destroy(); } catch (_) {}
+            return;
+          }
+          activePlayers.push(player);
+        }).catch(() => {
+          if (generation === renderGeneration) {
+            renderFallbackIframe(mountId, embedUrl);
+          }
+        });
+      } else {
+        renderFallbackIframe(mountId, embedUrl);
+      }
+    }
+
+    function getRequestedSlug() {
+      const params = new URLSearchParams(window.location.search);
+      return (params.get('mk') || '').trim().toLowerCase();
+    }
+
+    function updateUrlSlug(slug) {
+      try {
+        const url = new URL(window.location.href);
+        if (slug) {
+          url.searchParams.set('mk', slug);
+        } else {
+          url.searchParams.delete('mk');
+        }
+        window.history.replaceState({}, '', url.toString());
+      } catch (_) {}
+    }
+
+    function renderCabinet(email, courses) {
+      currentEmail = email;
+      userCourses = Array.isArray(courses) ? courses : [];
+      el.userEmail.textContent = email;
+      renderWatermark(email);
+      switchMainView('cabinet');
+
+      const requestedSlug = getRequestedSlug();
+      if (requestedSlug) {
+        const found = userCourses.find(c => c.id === requestedSlug);
+        if (found) {
+          openCourse(found);
+          return;
+        }
+        el.catalogNotice.textContent = 'Доступ к запрошенному мастер-классу для вашего email не открыт. Ниже показаны доступные вам материалы.';
+        el.catalogNotice.classList.remove('hidden');
+      } else {
+        el.catalogNotice.classList.add('hidden');
+      }
+
+      if (userCourses.length === 1) {
+        openCourse(userCourses[0]);
+      } else {
+        renderCatalog();
+      }
+    }
+
+    function renderCatalog() {
+      destroyActivePlayers();
+      el.lessonsBox.innerHTML = '';
+      el.panelCourse.classList.add('hidden');
+      el.panelCatalog.classList.remove('hidden');
+      updateUrlSlug('');
+
+      el.coursesGrid.innerHTML = '';
+      userCourses.forEach(course => {
+        const card = document.createElement('div');
+        card.className = 'course-card';
+
+        const top = document.createElement('div');
+        const h3 = document.createElement('h3');
+        h3.textContent = course.title || 'Мастер-класс';
+        top.appendChild(h3);
+
+        if (course.subtitle) {
+          const p = document.createElement('p');
+          p.textContent = course.subtitle;
+          top.appendChild(p);
+        }
+
+        const count = Array.isArray(course.lessons) ? course.lessons.length : 0;
+        const meta = document.createElement('div');
+        meta.className = 'course-meta';
+        meta.textContent = 'Уроков: ' + count;
+        top.appendChild(meta);
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = 'Открыть мастер-класс';
+        btn.addEventListener('click', () => openCourse(course));
+
+        card.appendChild(top);
+        card.appendChild(btn);
+        el.coursesGrid.appendChild(card);
+      });
+    }
+
+    function openCourse(course) {
+      destroyActivePlayers();
+      const generation = renderGeneration;
+
+      el.panelCatalog.classList.add('hidden');
+      el.panelCourse.classList.remove('hidden');
+      el.btnBack.classList.toggle('hidden', userCourses.length <= 1);
+      updateUrlSlug(course.id);
+
+      el.courseTitle.textContent = course.title || 'Мастер-класс';
+      el.courseSubtitle.textContent = course.subtitle || '';
+      el.lessonsBox.innerHTML = '';
+
+      const lessons = Array.isArray(course.lessons) ? course.lessons : [];
+      const playersToInit = [];
+
+      lessons.forEach((lesson, index) => {
+        const card = document.createElement('div');
+        card.className = 'lesson-card';
+
+        const h2 = document.createElement('h2');
+        h2.textContent = lesson.title || 'Урок';
+        card.appendChild(h2);
+
+        if (lesson.descriptionHtml) {
+          const desc = document.createElement('div');
+          desc.className = 'lesson-desc';
+          desc.innerHTML = lesson.descriptionHtml;
+          card.appendChild(desc);
+        }
+
+        if (lesson.kinescopeId) {
+          const wrap = document.createElement('div');
+          wrap.className = 'video-wrap';
+
+          const mountId = 'kinescope-player-' + generation + '-' + index;
+          const mountNode = document.createElement('div');
+          mountNode.id = mountId;
+
+          wrap.appendChild(mountNode);
+          card.appendChild(wrap);
+
+          playersToInit.push({
+            mountId: mountId,
+            kinescopeId: lesson.kinescopeId
+          });
+        }
+
+        el.lessonsBox.appendChild(card);
+      });
+
+      // Монтируем плееры строго после того, как контейнеры добавлены в DOM
+      playersToInit.forEach(item => {
+        mountKinescopePlayer(item.mountId, item.kinescopeId, currentEmail, generation);
+      });
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function startResendCountdown() {
+      let sec = 60;
+      clearInterval(resendTimer);
+      el.btnResend.disabled = true;
+      el.btnResend.textContent = 'Повторить (' + sec + 'с)';
+
+      resendTimer = setInterval(() => {
+        sec--;
+        if (sec <= 0) {
+          clearInterval(resendTimer);
+          el.btnResend.disabled = false;
+          el.btnResend.textContent = 'Отправить код повторно';
+        } else {
+          el.btnResend.textContent = 'Повторить (' + sec + 'с)';
+        }
+      }, 1000);
+    }
+
+    el.btnBack.addEventListener('click', () => {
+      el.catalogNotice.classList.add('hidden');
+      renderCatalog();
+    });
+
+    el.formEmail.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      currentEmail = el.inputEmail.value.trim().toLowerCase();
+      if (!currentEmail) return;
+
+      showMessage('', '');
+      el.btnSend.disabled = true;
+      el.btnSend.textContent = 'Отправляем код...';
+
+      try {
+        const data = await apiCall({ action: 'request_otp', email: currentEmail });
+        if (data.ok) {
+          el.formEmail.classList.add('hidden');
+          el.formOtp.classList.remove('hidden');
+          el.inputOtp.value = '';
+          el.inputOtp.focus();
+          showMessage('Код отправлен на ' + currentEmail + '. Проверьте также папку «Спам».', 'info');
+          startResendCountdown();
+        } else {
+          showMessage(data.error || 'Не удалось отправить код.', 'error');
+        }
+      } catch (err) {
+        showMessage('Ошибка связи с сервером. Попробуйте ещё раз.', 'error');
+      } finally {
+        el.btnSend.disabled = false;
+        el.btnSend.textContent = 'Получить код на почту';
+      }
+    });
+
+    el.formOtp.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const code = el.inputOtp.value.trim();
+      if (!code) return;
+
+      showMessage('', '');
+      el.btnVerify.disabled = true;
+      el.btnVerify.textContent = 'Проверяем...';
+
+      try {
+        const data = await apiCall({ action: 'verify_otp', email: currentEmail, code: code });
+        if (data.ok && data.token) {
+          localStorage.setItem(TOKEN_KEY, data.token);
+          renderCabinet(data.email, data.courses);
+        } else {
+          showMessage(data.error || 'Неверный код.', 'error');
+        }
+      } catch (err) {
+        showMessage('Ошибка связи с сервером. Попробуйте ещё раз.', 'error');
+      } finally {
+        el.btnVerify.disabled = false;
+        el.btnVerify.textContent = 'Войти';
+      }
+    });
+
+    el.btnChange.addEventListener('click', () => {
+      clearInterval(resendTimer);
+      el.formOtp.classList.add('hidden');
+      el.formEmail.classList.remove('hidden');
+      showMessage('', '');
+    });
+
+    el.btnResend.addEventListener('click', () => {
+      el.formEmail.dispatchEvent(new Event('submit'));
+    });
+
+    el.btnLogout.addEventListener('click', async () => {
+      const token = localStorage.getItem(TOKEN_KEY);
+      localStorage.removeItem(TOKEN_KEY);
+      destroyActivePlayers();
+      currentEmail = '';
+      userCourses = [];
+      el.lessonsBox.innerHTML = '';
+      el.coursesGrid.innerHTML = '';
+      el.formOtp.classList.add('hidden');
+      el.formEmail.classList.remove('hidden');
+      showMessage('', '');
+      switchMainView('auth');
+
+      if (token) {
+        try { await apiCall({ action: 'logout', token: token }); } catch (_) {}
+      }
+    });
+
+    // Базовая защита от копирования и печати
+    document.addEventListener('contextmenu', (e) => {
+      if (e.target.tagName !== 'INPUT') e.preventDefault();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT') return;
+      if ((e.ctrlKey || e.metaKey) && ['c', 'u', 's', 'p'].includes(e.key.toLowerCase())) {
+        e.preventDefault();
+      }
+    });
+
+    // Проверка сохранённой сессии при загрузке страницы
+    (async function init() {
+      const savedToken = localStorage.getItem(TOKEN_KEY);
+      if (!savedToken) {
+        switchMainView('auth');
+        return;
+      }
+
+      try {
+        const data = await apiCall({ action: 'check_session', token: savedToken });
+        if (data.ok) {
+          renderCabinet(data.email, data.courses);
+        } else {
+          localStorage.removeItem(TOKEN_KEY);
+          if (data.error) showMessage(data.error, 'error');
+          switchMainView('auth');
+        }
+      } catch (err) {
+        switchMainView('auth');
+      }
+    })();
+  </script>
+</body>
+</html>
